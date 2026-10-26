@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>East Greenwich RC Laser Dashboard</title>
+
+<style>
+
+:root{
+    --bg:#0f172a;
+    --card:#1e293b;
+    --text:#f8fafc;
+    --green:#22c55e;
+    --yellow:#f59e0b;
+    --red:#ef4444;
+    --blue:#38bdf8;
+}
+
+body{
+    margin:0;
+    padding:20px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+h1{
+    margin-bottom:0;
+}
+
+.subtitle{
+    opacity:0.8;
+    margin-bottom:20px;
+}
+
+.grid{
+    display:grid;
+    gap:12px;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+}
+
+.card{
+    background:var(--card);
+    padding:15px;
+    border-radius:12px;
+}
+
+.label{
+    font-size:0.9rem;
+    opacity:0.75;
+}
+
+.value{
+    font-size:2rem;
+    font-weight:bold;
+    margin-top:5px;
+}
+
+.go{
+    color:var(--green);
+}
+
+.marginal{
+    color:var(--yellow);
+}
+
+.nogo{
+    color:var(--red);
+}
+
+.section{
+    margin-top:20px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    padding:8px;
+    text-align:left;
+}
+
+tr:nth-child(even){
+    background:rgba(255,255,255,0.05);
+}
+
+.arrow-up{
+    color:var(--green);
+}
+
+.arrow-down{
+    color:var(--blue);
+}
+
+.small{
+    font-size:0.85rem;
+    opacity:0.8;
+}
+
+.rec{
+    line-height:1.6;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>East Greenwich RC Laser Dashboard</h1>
+<div class="subtitle">
+Narragansett Bay • Sailing Window 11:30 AM - 3:00 PM
+</div>
+
+<div id="updated" class="small">Loading...</div>
+
+<div class="grid">
+
+<div class="card">
+<div class="label">Wind</div>
+<div id="wind" class="value">--</div>
+<div id="direction"></div>
+</div>
+
+<div class="card">
+<div class="label">Gusts</div>
+<div id="gusts" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="label">Precipitation</div>
+<div id="rain" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="label">Wave Estimate</div>
+<div id="waves" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="label">Recommended Sail</div>
+<div id="sail" class="value">--</div>
+</div>
+
+<div class="card">
+<div class="label">Go / No-Go</div>
+<div id="status" class="value">--</div>
+</div>
+
+</div>
+
+<div class="section card">
+
+<h2>Tides</h2>
+
+<div class="grid">
+
+<div>
+<div class="label">Next High Tide</div>
+<div id="highTide" class="value" style="font-size:1.3rem">--</div>
+</div>
+
+<div>
+<div class="label">Next Low Tide</div>
+<div id="lowTide" class="value" style="font-size:1.3rem">--</div>
+</div>
+
+<div>
+<div class="label">Current Trend</div>
+<div id="tideTrend" class="value" style="font-size:1.3rem">--</div>
+</div>
+
+</div>
+
+</div>
+
+<div class="section card">
+
+<h2>Sailing Window Forecast</h2>
+
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Wind</th>
+<th>Direction</th>
+<th>Rain</th>
+</tr>
+</thead>
+<tbody id="forecastTable">
+</tbody>
+</table>
+
+</div>
+
+<div class="section card">
+
+<h2>RC Laser Recommendation</h2>
+
+<div id="recommendation" class="rec">
+Loading...
+</div>
+
+</div>
+
+<script>
+
+const LAT = 41.66;
+const LON = -71.45;
+
+/*
+ NOAA station near East Greenwich
+*/
+const NOAA_STATION = "8454578";
+
+function compass(deg){
+const dirs=[
+"N","NNE","NE","ENE",
+"E","ESE","SE","SSE",
+"S","SSW","SW","WSW",
+"W","WNW","NW","NNW"
+];
+return dirs[Math.round(deg/22.5)%16];
+}
+
+function determineRig(wind){
+
+if(wind < 10) return "A Rig";
+if(wind < 18) return "B Rig";
+return "C Rig";
+
+}
+
+function determineStatus(wind){
+
+if(wind < 3){
+return {text:"NO-GO",css:"nogo"};
+}
+
+if(wind < 6){
+return {text:"MARGINAL",css:"marginal"};
+}
+
+if(wind <= 18){
+return {text:"GO",css:"go"};
+}
+
+if(wind <= 25){
+return {text:"MARGINAL",css:"marginal"};
+}
+
+return {text:"NO-GO",css:"nogo"};
+
+}
+
+function estimateWaveHeight(wind){
+
+if(wind < 5) return "0.5 ft";
+if(wind < 10) return "1 ft";
+if(wind < 15) return "1-2 ft";
+if(wind < 20) return "2-3 ft";
+
+return "3+ ft";
+
+}
+
+async function loadWeather(){
+
+const weatherURL =
+`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=wind_speed_10m,wind_direction_10m&hourly=wind_speed_10m,wind_direction_10m,precipitation_probability&timezone=America/New_York`;
+
+const response = await fetch(weatherURL);
+const weather = await response.json();
+
+const wind = weather.current.wind_speed_10m;
+const direction = weather.current.wind_direction_10m;
+
+document.getElementById('wind').innerText =
+Math.round(wind) + " mph";
+
+document.getElementById('direction').innerText =
+compass(direction) + " (" + Math.round(direction) + "°)";
+
+document.getElementById('gusts').innerText =
+Math.round(wind * 1.4) + " mph";
+
+document.getElementById('waves').innerText =
+estimateWaveHeight(wind);
+
+const rig = determineRig(wind);
+
+document.getElementById('sail').innerText =
+rig;
+
+const status = determineStatus(wind);
+
+const statusEl =
+document.getElementById("status");
+
+statusEl.innerText = status.text;
+statusEl.className = "value " + status.css;
+
+buildForecastTable(weather);
+
+buildRecommendation(
+wind,
+rig,
+status.text
+);
+
+document.getElementById("updated").innerText =
+"Last Updated: " +
+new Date().toLocaleString();
+}
+
+function buildForecastTable(weather){
+
+const tbody =
+document.getElementById("forecastTable");
+
+tbody.innerHTML = "";
+
+const times =
+weather.hourly.time;
+
+const winds =
+weather.hourly.wind_speed_10m;
+
+const dirs =
+weather.hourly.wind_direction_10m;
+
+const rain =
+weather.hourly.precipitation_probability;
+
+for(let i=0;i<times.length;i++){
+
+const dt = new Date(times[i]);
+
+const hour =
+dt.getHours() +
+dt.getMinutes()/60;
+
+if(hour >= 11.5 && hour <= 15){
+
+const row =
+document.createElement("tr");
+
+row.innerHTML = `
+<td>${dt.toLocaleTimeString([],{
+hour:'numeric',
+minute:'2-digit'
+})}</td>
+<td>${Math.round(winds[i])} mph</td>
+<td>${compass(dirs[i])}</td>
+<td>${rain[i]}%</td>
+`;
+
+tbody.appendChild(row);
+
+}
+}
+
+const nowHour=new Date().getHours();
+
+document.getElementById("rain").innerText =
+rain[Math.min(nowHour,rain.length-1)] + "%";
+
+}
+
+function buildRecommendation(
+wind,
+rig,
+status
+){
+
+let text="";
+
+if(status==="GO"){
+
+text=`
+✅ Excellent RC Laser conditions.<br>
+✅ Recommended sail: <strong>${rig}</strong><br>
+✅ Wind appears suitable for racing and practice.<br>
+✅ Low precipitation risk.<br>
+✅ Good day to sail.
+`;
+
+}
+
+if(status==="MARGINAL"){
+
+text=`
+⚠ Conditions are sailable but may require extra attention.<br>
+⚠ Recommended sail: <strong>${rig}</strong>.
+`;
+
+}
+
+if(status==="NO-GO"){
+
+text=`
+❌ Conditions are outside normal RC Laser comfort range.<br>
+❌ Recommended sail: <strong>${rig}</strong>.
+`;
+
+}
+
+document.getElementById("recommendation").innerHTML =
+text;
+
+}
+
+async function loadTides(){
+
+try{
+
+const today =
+new Date();
+
+const begin =
+today.toISOString().slice(0,10).replace(/-/g,'');
+
+const tideURL =
+`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=rc_laser&begin_date=${begin}&range=36&datum=MLLW&station=${NOAA_STATION}&time_zone=lst_ldt&units=english&interval=hilo&format=json`;
+
+const r = await fetch(tideURL);
+const data = await r.json();
+
+if(!data.predictions) return;
+
+const now = new Date();
+
+let nextHigh = null;
+let nextLow = null;
+
+for(const p of data.predictions){
+
+const t =
+new Date(p.t);
+
+if(t > now){
+
+if(p.type === "H" && !nextHigh)
+nextHigh = p;
+
+if(p.type === "L" && !nextLow)
+nextLow = p;
+}
+
+}
+
+if(nextHigh){
+document.getElementById("highTide").innerText =
+new Date(nextHigh.t).toLocaleString();
+}
+
+if(nextLow){
+document.getElementById("lowTide").innerText =
+new Date(nextLow.t).toLocaleString();
+}
+
+if(nextHigh && nextLow){
+
+const trend =
+new Date(nextLow.t) <
+new Date(nextHigh.t)
+?
+"Falling ↓"
+:
+"Rising ↑";
+
+document.getElementById("tideTrend")
+.innerHTML = trend;
+}
+
+}
+catch(err){
+
+console.log(err);
+
+}
+
+}
+
+async function initialize(){
+
+await loadWeather();
+await loadTides();
+
+}
+
+initialize();
+
+setInterval(initialize,900000);
+
+</script>
+
+</body>
+</html>
