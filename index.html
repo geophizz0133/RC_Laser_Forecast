@@ -3,128 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>East Greenwich RC Laser Dashboard</title>
-
+<title>East Greenwich RI RC Laser Sailing Dashboard</title>
 <style>
-:root{
-    --bg:#0f172a;
-    --card:#1e293b;
-    --text:#f8fafc;
-    --green:#22c55e;
-    --yellow:#f59e0b;
-    --red:#ef4444;
-    --blue:#38bdf8;
-}
-
-body{
-    margin:0;
-    padding:20px;
-    background:var(--bg);
-    color:var(--text);
-    font-family:Arial,Helvetica,sans-serif;
-}
-
-h1{
-    margin-bottom:0;
-}
-
-.subtitle{
-    opacity:.8;
-    margin-bottom:20px;
-}
-
-.grid{
-    display:grid;
-    gap:12px;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-}
-
-.card{
-    background:var(--card);
-    padding:15px;
-    border-radius:12px;
-}
-
-.label{
-    font-size:.9rem;
-    opacity:.75;
-}
-
-.value{
-    font-size:2rem;
-    font-weight:bold;
-    margin-top:5px;
-}
-
-.go{color:var(--green);}
-.marginal{color:var(--yellow);}
-.nogo{color:var(--red);}
-
-.section{
-    margin-top:20px;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-}
-
-th,td{
-    padding:8px;
-    text-align:left;
-}
-
-tr:nth-child(even){
-    background:rgba(255,255,255,.05);
-}
-
-.small{
-    font-size:.85rem;
-    opacity:.8;
-}
-
-.rec{
-    line-height:1.6;
-}
+body{margin:0;font-family:Arial,sans-serif;background:#0b1724;color:#eef4ff}
+.container{max-width:1200px;margin:auto;padding:16px}
+.card{background:#13263a;border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.huge{font-size:2rem;font-weight:700}
+button{background:#2563eb;color:#fff;border:none;padding:10px 16px;border-radius:8px;cursor:pointer}
+.go{color:#4ade80}.marginal{color:#facc15}.nogo{color:#f87171}
+.sail-a{color:#4ade80}.sail-b{color:#facc15}.sail-c{color:#fb923c}.sail-d{color:#f87171;font-weight:700;text-shadow:0 0 10px rgba(248,113,113,.45)}
+.small{opacity:.85;font-size:.9rem}
+@media(max-width:600px){.huge{font-size:1.5rem}}
 </style>
 </head>
-
 <body>
-
-<h1>East Greenwich RC Laser Dashboard</h1>
-
-<div class="subtitle">
-Narragansett Bay · Sailing Window 11:30 AM–3:00 PM
+<div class='container'>
+<div class='card'>
+<h1 id='title'></h1>
+<div>Conimicut Light NOAA Station 8454578 • Sailing Window 11:30 AM–3:00 PM</div><br>
+<button onclick='loadData()'>Refresh Data</button>
+<div class='small'>Last Updated: <span id='updated'>Never</span></div>
 </div>
-
-<div id="updated" class="small">
-Loading...
+<div class='grid'>
+<div class='card'><h3>Status</h3><div id='status' class='huge'>Loading...</div></div>
+<div class='card'><h3>Sail Recommendation</h3><div id='sail' class='huge'>-</div></div>
+<div class='card'><h3>Maximum Wind</h3><div id='maxwind' class='huge'>-</div></div>
+<div class='card'><h3>Max Precipitation Chance</h3><div id='precip' class='huge'>-</div></div>
 </div>
+<div class='grid'>
+<div class='card'><h3>Weather (Open-Meteo)</h3><div id='weather'></div></div>
+<div class='card'><h3>Tides (NOAA)</h3><div id='tides'></div></div>
+</div>
+</div>
+<script>
+const now=new Date();
+document.title=`East Greenwich RI RC Laser Sailing Dashboard - ${now.toLocaleDateString()}`;
+document.getElementById('title').textContent=document.title;
+function stamp(){document.getElementById('updated').textContent=new Date().toLocaleString();}
+async function loadData(){
+ const dateStr=new Date().toISOString().slice(0,10);
+ const lat=41.66, lon=-71.45;
+ try{
+  const w=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=windspeed_10m,precipitation_probability&timezone=America%2FNew_York&ts=${Date.now()}`).then(r=>r.json());
+  const sw=[];
+  for(let i=0;i<w.hourly.time.length;i++){
+   const t=new Date(w.hourly.time[i]);
+   const mins=t.getHours()*60+t.getMinutes();
+   if(t.toISOString().slice(0,10)===dateStr && mins>=690 && mins<=900){
+    sw.push({t:t,wind:w.hourly.windspeed_10m[i],pop:w.hourly.precipitation_probability[i]||0});
+   }
+  }
+  const maxWind=Math.max(...sw.map(x=>x.wind),0);
+  const maxPop=Math.max(...sw.map(x=>x.pop),0);
+  document.getElementById('maxwind').textContent=maxWind.toFixed(1)+' mph';
+  document.getElementById('precip').textContent=maxPop.toFixed(0)+'%';
 
-<div class="grid">
+  let sail='A', cls='sail-a';
+  if(maxWind>=22){sail='D';cls='sail-d';}
+  else if(maxWind>=15){sail='C';cls='sail-c';}
+  else if(maxWind>=8){sail='B';cls='sail-b';}
+  const sailEl=document.getElementById('sail');
+  sailEl.textContent=sail+' Sail';
+  sailEl.className='huge '+cls;
 
-    <div class="card">
-        <div class="label">Wind</div>
-        <div id="wind" class="value">--</div>
-        <div id="direction"></div>
-    </div>
+  let status='GO', scls='go';
+  if(maxWind>=25){status='NO-GO';scls='nogo';}
+  else if(maxWind>=20 || maxPop>60){status='MARGINAL';scls='marginal';}
 
-    <div class="card">
-        <div class="label">Estimated Gusts</div>
-        <div id="gusts" class="value">--</div>
-    </div>
+  const st=document.getElementById('status');
+  st.textContent=status;
+  st.className='huge '+scls;
 
-    <div class="card">
-        <div class="label">Precipitation</div>
-        <div id="rain" class="value">--</div>
-    </div>
+  document.getElementById('weather').innerHTML=sw.map(x=>`${x.t.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} - ${x.wind} mph, ${x.pop}% precip`).join('<br>');
+ }catch(e){document.getElementById('weather').textContent='Weather unavailable';}
 
-    <div class="card">
-        <div class="label">Wave Estimate</div>
-        <div id="waves" class="value">--</div>
-    </div>
-
-    <div class="card">
-        <div class="label">Recommended Sail</div>
-        <div id="sail" class="value">--</div>
-    </div
+ try{
+  const d=dateStr.replace(/-/g,'');
+  const t=await fetch(`https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=eglaser&begin_date=${d}&end_date=${d}&datum=MLLW&station=8454578&time_zone=lst_ldt&units=english&interval=hilo&format=json`).then(r=>r.json());
+  document.getElementById('tides').innerHTML=(t.predictions||[]).map(x=>`${x.t} - ${x.type} ${x.v} ft`).join('<br>');
+ }catch(e){document.getElementById('tides').textContent='Tides unavailable';}
+ stamp();
+}
+loadData();
+setInterval(loadData,300000);
+</script>
+</body>
+</html>
