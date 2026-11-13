@@ -1,0 +1,171 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Sunday RC Laser Forecast</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+/* Layout: masthead + race-call banner, then four readouts, a wind gauge, and a window-shaded tide curve */
+:root{
+  --bg:#eef2f4; --panel:#ffffff; --fg:#14232e; --muted:#5b6b77; --line:#d3dce2;
+  --tide:#1f6f8b; --tide-fill:#cfe6ee; --wind:#c2571a; --rain:#3a56a8; --temp:#a8362b; --sel:#14232e; --selfg:#ffffff;
+  --ok:#1d7a4d; --warn:#b97a0b; --bad:#b3342b; --okbg:#dff1e7; --warnbg:#f8ecd2; --badbg:#f6dad7; --win:rgba(194,87,26,.14);
+  --display:'Barlow Condensed','Arial Narrow',sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1820; --panel:#132430; --fg:#e6eef2; --muted:#93a6b2; --line:#26404f;
+  --tide:#5fb6d2; --tide-fill:#173a4b; --wind:#f09a62; --rain:#8da6ee; --temp:#f08a7e; --sel:#e6eef2; --selfg:#0c1820;
+  --ok:#5fcf93; --warn:#e8b44f; --bad:#f08a7e; --okbg:#143a2a; --warnbg:#3d3012; --badbg:#44201d; --win:rgba(240,154,98,.16); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1820; --panel:#132430; --fg:#e6eef2; --muted:#93a6b2; --line:#26404f;
+  --tide:#5fb6d2; --tide-fill:#173a4b; --wind:#f09a62; --rain:#8da6ee; --temp:#f08a7e; --sel:#e6eef2; --selfg:#0c1820;
+  --ok:#5fcf93; --warn:#e8b44f; --bad:#f08a7e; --okbg:#143a2a; --warnbg:#3d3012; --badbg:#44201d; --win:rgba(240,154,98,.16); color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;
+  padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--fg);padding-bottom:10px}
+h1{font-family:var(--display);font-size:clamp(34px,7vw,52px);line-height:1;margin:0;font-weight:700;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+.sub{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:6px}
+.pos{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+.tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px}
+.rf{cursor:pointer;font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--sel);color:var(--selfg);border:0;padding:6px 16px}
+.rf:focus-visible{outline:3px solid var(--tide);outline-offset:2px}
+.rf:disabled{opacity:.6;cursor:default}
+.stale{background:var(--warnbg);color:var(--fg);border-left:5px solid var(--warn);padding:10px 14px;font-size:14px}
+.call{display:flex;gap:16px;align-items:center;padding:16px;border-left:8px solid var(--c);background:var(--cb)}
+.call{flex-wrap:wrap}
+.call .big{font-family:var(--display);font-size:clamp(40px,8vw,64px);font-weight:700;text-transform:uppercase;line-height:1;color:var(--c)}
+.call p{margin:4px 0 0;font-size:14px}
+.call .k{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.call .rig{border-left:2px solid var(--line);padding-left:16px;min-width:0;flex:1 1 220px}
+.call .rig b{font-family:var(--display);font-size:28px;font-weight:600;line-height:1.1;display:block}
+.panel{background:var(--panel);border:1px solid var(--line);padding:16px}
+h2{font-family:var(--display);font-size:24px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+.cap{color:var(--muted);font-size:13px;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media(max-width:700px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.m{border-top:3px solid var(--c);padding-top:8px;min-width:0}
+.m .l{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.m .v{font-family:var(--display);font-size:38px;line-height:1.05;font-weight:600;font-variant-numeric:tabular-nums}
+.m .v small{font-size:17px;color:var(--muted);font-weight:500}
+.m .s{font-size:13px;color:var(--muted)}
+.gauge{margin-top:6px}
+.gtrack{display:flex;height:14px}
+.gtrack i{display:block}
+.gscale{position:relative;height:34px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.gscale span{position:absolute;top:18px;transform:translateX(-50%)}
+.gmark{position:absolute;top:0;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:11px solid var(--fg);transform:translateX(-50%)}
+.zl{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-top:4px}
+.zl b{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.tl{display:flex;flex-wrap:wrap;gap:8px 10px;margin-top:10px}
+.tl div{font-family:var(--mono);font-size:13px;border:1px solid var(--line);padding:4px 8px;font-variant-numeric:tabular-nums;border-left:4px solid var(--muted)}
+.tl .H{border-left-color:var(--tide)}
+.rs{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.foot{font-size:12px;color:var(--muted)}
+.foot a{color:var(--tide)}
+</style>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Sunday RC Laser</h1>
+    <div class="sub" id="sub"></div>
+  </div>
+  <div class="pos">East Greenwich, RI · Greenwich Bay<br>Forecast issued <span id="stamp"></span>
+    <div class="tools"><span class="rs" id="rs" role="status"></span><button class="rf" id="rf" type="button">Refresh</button></div>
+  </div>
+</header>
+<div class="stale" id="stale" hidden></div>
+<div class="call" id="call"></div>
+<section class="panel">
+  <h2>Race window conditions</h2>
+  <p class="cap" id="wcap"></p>
+  <div class="grid" id="metrics"></div>
+</section>
+<section class="panel">
+  <h2>Wind and rig</h2>
+  <p class="cap">Rig ranges follow the RC Laser A, B and C sails: A about 1–8 mph, B about 8–18 mph, C about 18–25 mph. The go and no-go limits are guidance. Your race committee decides.</p>
+  <div class="gauge" id="gauge"></div>
+</section>
+<section class="panel">
+  <h2>Tide</h2>
+  <p class="cap">Height in feet above MLLW. The shaded band is the race window.</p>
+  <svg id="chart" viewBox="0 0 720 240" role="img" aria-label="Tide curve with the race window shaded"></svg>
+  <div class="tl" id="tl"></div>
+</section>
+<p class="foot" id="foot"></p>
+</div>
+<script>
+// Snapshot data for one Sunday, refreshed by republishing this page. Times EST (clocks are on standard time).
+var DATA={
+  date:"2026-11-15", label:"Sun Nov 15",
+  issued:"Fri Nov 13, 2026, 8:40 AM EST",
+  windDir:"NW", windDeg:315, windMph:13, gust:null,
+  tempLo:46, tempHi:51, // two sources: 46 and 51 for the daytime high
+  lowTemp:34, precip:5, sky:"Mostly sunny", sunset:"4:25 PM",
+  tides:[["04:32","L",0.67],["11:39","H",3.32],["17:06","L",0.72],["24:03","H",3.33]] // last row is Mon 12:03 AM, for the curve only
+};
+var WIN=[11.5*60,15*60]; // 11:30 AM to 3:00 PM
+var $=function(i){return document.getElementById(i)};
+function hm(s){var a=s.split(":");return +a[0]*60+ +a[1]}
+function fmt(m){var h=Math.floor(m/60)%24,mm=("0"+Math.round(m%60)).slice(-2),ap=h>=12?"PM":"AM";h=h%12||12;return h+":"+mm+" "+ap}
+function kt(m){return Math.round(m*0.869)}
+function pad(n){return ("0"+n).slice(-2)}
+function targetSunday(){var n=new Date(),d=new Date(n.getFullYear(),n.getMonth(),n.getDate()),add=(7-d.getDay())%7;d.setDate(d.getDate()+add);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+// zones in mph: [from,to,name,color var,short]
+var ZONES=[[0,3,"No-go, too light","--bad"],[3,8,"A rig","--ok"],[8,18,"B rig (standard)","--ok"],[18,25,"C rig (storm)","--warn"],[25,30,"No-go, too strong","--bad"]];
+function call(w){
+  if(w<3)return {t:"No-go",c:"--bad",b:"--badbg",rig:"No rig works",rx:"Under 3 mph the boats drift and races stall. Hold for a breeze or call it off."};
+  if(w<8)return {t:"Go",c:"--ok",b:"--okbg",rig:"A rig (large, 949 sq in)",rx:"Light air, so use the biggest sail. Switch to the standard rig if the wind builds past 8 mph."};
+  if(w<=18)return {t:"Go",c:"--ok",b:"--okbg",rig:"B rig (standard, 710 sq in)",rx:w>=15?"Upper end of the standard rig's range. Have the storm sail ready if it builds.":"Comfortable range for the standard sail. Have the storm sail ready if gusts push past 18 mph."};
+  if(w<=25)return {t:"Go, caution",c:"--warn",b:"--warnbg",rig:"C rig (storm sail)",rx:"Strong wind. Storm sail only, and expect capsizes and lost control in the gusts."};
+  return {t:"No-go",c:"--bad",b:"--badbg",rig:"No rig works",rx:"Above 25 mph even the storm sail is too much. Call racing off."}
+}
+function tideAt(t){var T=DATA.tides.map(function(r){return [hm(r[0]),r[2]]});
+  for(var i=0;i<T.length-1;i++){if(t>=T[i][0]&&t<=T[i+1][0]){var f=(t-T[i][0])/(T[i+1][0]-T[i][0]);return T[i][1]+(T[i+1][1]-T[i][1])*(1-Math.cos(Math.PI*f))/2}}return null}
+function render(){
+  $("sub").textContent=DATA.label+" · racing 11:30 AM to 3:00 PM";
+  $("stamp").textContent=DATA.issued;
+  var want=targetSunday(),st=$("stale");
+  if(DATA.date!==want){st.hidden=false;st.textContent=DATA.date<want?"This forecast is for "+DATA.label+", which has passed. The forecast for the next Sunday has not been published yet. Press Refresh to check.":"This page still shows "+DATA.label+". Press Refresh to check for an update."}
+  var c=call(DATA.windMph),el=$("call");
+  el.style.setProperty("--c","var("+c.c+")");el.style.setProperty("--cb","var("+c.b+")");
+  el.innerHTML='<div><div class="k">Race call</div><div class="big">'+c.t+'</div></div><div class="rig"><div class="k">Sail recommendation</div><b>'+c.rig+'</b><p>'+c.rx+'</p></div>';
+  $("wcap").textContent=DATA.sky+". Sunset "+DATA.sunset+", so there is daylight to spare after racing.";
+  var arrow='<svg viewBox="0 0 40 40" width="26" height="26" style="vertical-align:-4px;margin-right:4px" aria-hidden="true"><g transform="rotate('+(DATA.windDeg+180)+' 20 20)"><path d="M20 4 L28 22 L22 20 L22 36 L18 36 L18 20 L12 22 Z" fill="var(--wind)"/></g></svg>';
+  $("metrics").innerHTML=
+   '<div class="m" style="--c:var(--wind)"><div class="l">Wind from</div><div class="v">'+arrow+DATA.windDir+' '+DATA.windMph+'<small> mph</small></div><div class="s">'+kt(DATA.windMph)+' kt · gusts '+(DATA.gust?DATA.gust+" mph":"not listed")+'</div></div>'+
+   '<div class="m" style="--c:var(--temp)"><div class="l">Air temperature</div><div class="v">'+DATA.tempLo+'–'+DATA.tempHi+'<small>°F</small></div><div class="s">Daytime high, sources differ. Overnight low '+DATA.lowTemp+'°. Bring gloves.</div></div>'+
+   '<div class="m" style="--c:var(--rain)"><div class="l">Precipitation</div><div class="v">'+DATA.precip+'<small> %</small></div><div class="s">Dry</div></div>'+
+   '<div class="m" style="--c:var(--tide)"><div class="l">Tide in window</div><div class="v">'+tideAt(WIN[0]).toFixed(1)+'→'+tideAt(WIN[1]).toFixed(1)+'<small> ft</small></div><div class="s">High at 11:39 AM, then falling</div></div>';
+  gauge();chart();
+}
+function gauge(){
+  var max=30,h='<div class="gtrack">';
+  ZONES.forEach(function(z){h+='<i style="width:'+((z[1]-z[0])/max*100)+'%;background:var('+z[3]+')"></i>'});
+  h+='</div><div class="gscale"><div class="gmark" style="left:'+(Math.min(DATA.windMph,max)/max*100)+'%"></div>';
+  [0,5,10,15,20,25,30].forEach(function(v){h+='<span style="left:'+(v/max*100)+'%">'+v+'</span>'});
+  h+='</div><div class="zl">'+ZONES.map(function(z){return '<span><b style="background:var('+z[3]+')"></b>'+z[2]+' ('+z[0]+'–'+z[1]+' mph)</span>'}).join("")+'</div>';
+  $("gauge").innerHTML=h;
+}
+function chart(){
+  var W=720,H=240,L=36,R=12,T=14,B=28,x0=9*60,x1=17*60,ymin=0,ymax=4,
+      X=function(t){return L+(t-x0)/(x1-x0)*(W-L-R)},Y=function(v){return T+(ymax-v)/(ymax-ymin)*(H-T-B)},s="",i;
+  s+='<rect x="'+X(WIN[0])+'" y="'+T+'" width="'+(X(WIN[1])-X(WIN[0]))+'" height="'+(H-T-B)+'" fill="var(--win)"/>';
+  for(i=0;i<=4;i++)s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(i)+'" y2="'+Y(i)+'" stroke="var(--line)"/><text x="10" y="'+(Y(i)+4)+'">'+i+'</text>';
+  for(i=9;i<=17;i++){var lab=(i%12||12)+(i<12?"a":"p");s+='<line x1="'+X(i*60)+'" x2="'+X(i*60)+'" y1="'+T+'" y2="'+(H-B)+'" stroke="var(--line)" stroke-dasharray="2 4"/><text x="'+(X(i*60)-8)+'" y="'+(H-8)+'">'+lab+'</text>'}
+  var pts=[];for(var t=x0;t<=x1;t+=5){var v=tideAt(t);if(v!==null)pts.push([X(t),Y(v)])}
+  var path="M"+pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1)}).join("L");
+  s+='<path d="'+path+'L'+pts[pts.length-1][0]+","+Y(0)+'L'+pts[0][0]+","+Y(0)+'Z" fill="var(--tide-fill)" opacity=".85"/><path d="'+path+'" fill="none" stroke="var(--tide)" stroke-width="2.5"/>';
+  s+='<text x="'+(X(WIN[0])+6)+'" y="'+(T+12)+'" style="fill:var(--wind)">race window 11:30a–3:00p</text>';
+  var out="";
+  DATA.tides.forEach(function(r){var m=hm(r[0]);if(m>=24*60)return;
+    var cx=X(m);if(cx>=L&&cx<=W-R)s+='<circle cx="'+cx+'" cy="'+Y(r[2])+'" r="4.5" fill="var(--panel)" stroke="var(--tide)" stroke-width="2"/><text x="'+(cx-14)+'" y="'+(r[1]==="H"?Y(r[2])-9:Y(r[2])+18)+'">'+r[2].toFixed(1)+'</text>';
+    out+='<div class="'+r[1]+'">'+(r[1]==="H"?"High":"Low")+' '+fmt(m)+' · '+r[2].toFixed(2)+' ft</div>'});
+  $("chart").innerHTML=s;$("tl").innerHTML=out;
+}
+$("foot").innerHTML='Conditions from <a href="https://www.foxweather.com/local-weather/rhode-island/east-greenwich">Fox Weather</a> and <a href="https://www.weatherbug.com/weather-forecast/10-day-weather/east-greenwich-ri-02818">WeatherBug</a>. Tides from <a href="https://www.tide-forecast.com/tide/East-Greenwich-Narragansett-Bay-Rhode-Island/tide-times">Tide-Forecast</a>. The sources give one wind speed for the day, not hourly values, so the same wind applies across the window. Gusts are not listed. Rig wind ranges are from the <a href="https://sailingtexas.com/crclaseracc.html">RC Laser accessories listing</a>, which gives slightly different numbers in different sections. Refresh loads the newest published version of this page; it does not fetch live weather.';
+$("rf").addEventListener("click",function(){var b=$("rf");b.disabled=true;$("rs").textContent="Loading latest version…";setTimeout(function(){try{location.reload()}catch(e){b.disabled=false;$("rs").textContent="Could not reload. Close and reopen the page."}},400)});
+render();
+</script>
+
+</body></html>
