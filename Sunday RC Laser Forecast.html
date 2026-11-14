@@ -1,171 +1,754 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Sunday RC Laser Forecast</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RC Laser Sunday Racing Dashboard</title>
 <style>
-/* Layout: masthead + race-call banner, then four readouts, a wind gauge, and a window-shaded tide curve */
 :root{
-  --bg:#eef2f4; --panel:#ffffff; --fg:#14232e; --muted:#5b6b77; --line:#d3dce2;
-  --tide:#1f6f8b; --tide-fill:#cfe6ee; --wind:#c2571a; --rain:#3a56a8; --temp:#a8362b; --sel:#14232e; --selfg:#ffffff;
-  --ok:#1d7a4d; --warn:#b97a0b; --bad:#b3342b; --okbg:#dff1e7; --warnbg:#f8ecd2; --badbg:#f6dad7; --win:rgba(194,87,26,.14);
-  --display:'Barlow Condensed','Arial Narrow',sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --bg:#eef2f4;--panel:#fff;--fg:#14232e;--muted:#5b6b77;--line:#d3dce2;--accent:#1f6f8b;--head:#14232e;--headfg:#fff;
+  --go:#1d7a4d;--gobg:#dff1e7;--marg:#a86a00;--margbg:#f8ecd2;--nogo:#b3342b;--nogobg:#f6dad7;--unk:#5b6b77;--unkbg:#e4e9ec;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0c1820; --panel:#132430; --fg:#e6eef2; --muted:#93a6b2; --line:#26404f;
-  --tide:#5fb6d2; --tide-fill:#173a4b; --wind:#f09a62; --rain:#8da6ee; --temp:#f08a7e; --sel:#e6eef2; --selfg:#0c1820;
-  --ok:#5fcf93; --warn:#e8b44f; --bad:#f08a7e; --okbg:#143a2a; --warnbg:#3d3012; --badbg:#44201d; --win:rgba(240,154,98,.16); color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0c1820; --panel:#132430; --fg:#e6eef2; --muted:#93a6b2; --line:#26404f;
-  --tide:#5fb6d2; --tide-fill:#173a4b; --wind:#f09a62; --rain:#8da6ee; --temp:#f08a7e; --sel:#e6eef2; --selfg:#0c1820;
-  --ok:#5fcf93; --warn:#e8b44f; --bad:#f08a7e; --okbg:#143a2a; --warnbg:#3d3012; --badbg:#44201d; --win:rgba(240,154,98,.16); color-scheme:dark}
-body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;
-  padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--fg);padding-bottom:10px}
-h1{font-family:var(--display);font-size:clamp(34px,7vw,52px);line-height:1;margin:0;font-weight:700;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
-.sub{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:6px}
-.pos{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
-.tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px}
-.rf{cursor:pointer;font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--sel);color:var(--selfg);border:0;padding:6px 16px}
-.rf:focus-visible{outline:3px solid var(--tide);outline-offset:2px}
-.rf:disabled{opacity:.6;cursor:default}
-.stale{background:var(--warnbg);color:var(--fg);border-left:5px solid var(--warn);padding:10px 14px;font-size:14px}
-.call{display:flex;gap:16px;align-items:center;padding:16px;border-left:8px solid var(--c);background:var(--cb)}
-.call{flex-wrap:wrap}
-.call .big{font-family:var(--display);font-size:clamp(40px,8vw,64px);font-weight:700;text-transform:uppercase;line-height:1;color:var(--c)}
-.call p{margin:4px 0 0;font-size:14px}
-.call .k{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.call .rig{border-left:2px solid var(--line);padding-left:16px;min-width:0;flex:1 1 220px}
-.call .rig b{font-family:var(--display);font-size:28px;font-weight:600;line-height:1.1;display:block}
-.panel{background:var(--panel);border:1px solid var(--line);padding:16px}
-h2{font-family:var(--display);font-size:24px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.03em;font-weight:600}
-.cap{color:var(--muted);font-size:13px;margin:0 0 10px}
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-@media(max-width:700px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.m{border-top:3px solid var(--c);padding-top:8px;min-width:0}
-.m .l{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.m .v{font-family:var(--display);font-size:38px;line-height:1.05;font-weight:600;font-variant-numeric:tabular-nums}
-.m .v small{font-size:17px;color:var(--muted);font-weight:500}
-.m .s{font-size:13px;color:var(--muted)}
-.gauge{margin-top:6px}
-.gtrack{display:flex;height:14px}
-.gtrack i{display:block}
-.gscale{position:relative;height:34px;font-family:var(--mono);font-size:11px;color:var(--muted)}
-.gscale span{position:absolute;top:18px;transform:translateX(-50%)}
-.gmark{position:absolute;top:0;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:11px solid var(--fg);transform:translateX(-50%)}
-.zl{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-top:4px}
-.zl b{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
-svg{width:100%;height:auto;display:block}
-svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
-.tl{display:flex;flex-wrap:wrap;gap:8px 10px;margin-top:10px}
-.tl div{font-family:var(--mono);font-size:13px;border:1px solid var(--line);padding:4px 8px;font-variant-numeric:tabular-nums;border-left:4px solid var(--muted)}
-.tl .H{border-left-color:var(--tide)}
-.rs{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.foot{font-size:12px;color:var(--muted)}
-.foot a{color:var(--tide)}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0c1820;--panel:#132430;--fg:#e6eef2;--muted:#93a6b2;--line:#26404f;--accent:#5fb6d2;--head:#0a131a;--headfg:#e6eef2;
+  --go:#5fcf93;--gobg:#143a2a;--marg:#e8b44f;--margbg:#3d3012;--nogo:#f08a7e;--nogobg:#44201d;--unk:#93a6b2;--unkbg:#1d3341;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.45}
+header{background:var(--head);color:var(--headfg);padding:16px max(16px,env(safe-area-inset-left)) 14px max(16px,env(safe-area-inset-right))}
+.hwrap{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+h1{margin:0;font-size:clamp(22px,4.5vw,32px);line-height:1.1;letter-spacing:.01em}
+.sub{font-family:var(--mono);font-size:12px;opacity:.75;margin-top:4px}
+.hstats{display:flex;flex-wrap:wrap;gap:6px 24px}
+.hstat .k{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.7}
+.hstat .v{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.hbtns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:6px 12px;border-radius:4px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button:disabled{opacity:.55;cursor:default}
+button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+header button{background:transparent;color:var(--headfg);border-color:rgba(255,255,255,.4)}
+header button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+main{max-width:1100px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-left)) 40px max(16px,env(safe-area-inset-right));display:flex;flex-direction:column;gap:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);padding:16px;min-width:0}
+.card h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.big{font-size:clamp(28px,5.5vw,42px);font-weight:800;line-height:1;letter-spacing:.01em;overflow-wrap:anywhere}
+.row>div:last-child{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;font-family:var(--mono);text-transform:uppercase}
+.lv-go{color:var(--go)}.lv-marginal{color:var(--marg)}.lv-nogo{color:var(--nogo)}.lv-unknown,.lv-idle,.lv-loading{color:var(--unk)}
+.bg-go{background:var(--gobg);color:var(--go)}.bg-marginal{background:var(--margbg);color:var(--marg)}.bg-nogo{background:var(--nogobg);color:var(--nogo)}.bg-unknown,.bg-idle,.bg-loading,.bg-ok-off{background:var(--unkbg);color:var(--unk)}
+.bg-ok{background:var(--gobg);color:var(--go)}.bg-error{background:var(--nogobg);color:var(--nogo)}.bg-disabled{background:var(--margbg);color:var(--marg)}
+.statusbox{padding:12px 14px;border-left:8px solid var(--c);background:var(--cb);margin-bottom:12px}
+.rigbox{display:flex;gap:14px;align-items:center;padding:12px 14px;margin-bottom:12px;border:2px solid var(--accent);background:var(--panel);flex-wrap:wrap}
+.rigbox .rk{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.rigbox .rbig{font-size:clamp(30px,6vw,44px);font-weight:800;line-height:1;color:var(--accent)}
+.rigbox .rtxt{flex:1 1 180px;min-width:0}
+.rigbox .rline{font-weight:600}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+.kv .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-family:var(--mono)}
+.kv .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.row:first-of-type{border-top:0}
+.row .nm{font-weight:600}.row .ds{font-size:12px;color:var(--muted)}
+.tiny{font-size:12px;padding:3px 9px}
+.errcard{border-left:8px solid var(--nogo);background:var(--nogobg)}
+.errcard h2{color:var(--nogo)}
+.src{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.src:first-of-type{border-top:0}
+.src .msg{grid-column:1/-1;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.cons h3{margin:10px 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.cons .line{display:flex;justify-content:space-between;gap:10px;padding:2px 0;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-family:var(--mono)}
+.maps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.mapframe{width:100%;height:420px;border:0;display:block;background:var(--unkbg)}
+footer{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:8px}
+.tests{font-family:var(--mono);font-size:12px;white-space:pre-wrap}
+.tests .pass{color:var(--go)}.tests .fail{color:var(--nogo)}
 </style>
-<div class="wrap">
+</head>
+<body>
 <header>
-  <div>
-    <h1>Sunday RC Laser</h1>
-    <div class="sub" id="sub"></div>
-  </div>
-  <div class="pos">East Greenwich, RI · Greenwich Bay<br>Forecast issued <span id="stamp"></span>
-    <div class="tools"><span class="rs" id="rs" role="status"></span><button class="rf" id="rf" type="button">Refresh</button></div>
+  <div class="hwrap">
+    <div>
+      <h1>RC Laser Sunday Racing &middot; East Greenwich, RI</h1>
+      <div class="sub" id="locsub"></div>
+    </div>
+    <div class="hstats">
+      <div class="hstat"><div class="k">Race Date</div><div class="v" id="raceDate">&hellip;</div></div>
+      <div class="hstat"><div class="k">Last Refresh</div><div class="v" id="lastRefresh">Not yet</div></div>
+    </div>
+    <div class="hbtns">
+      <button class="primary" id="btnRefresh" type="button">Refresh</button>
+      <button id="btnDlPage" type="button">Download page</button>
+      <button id="btnDlData" type="button">Download data</button>
+    </div>
   </div>
 </header>
-<div class="stale" id="stale" hidden></div>
-<div class="call" id="call"></div>
-<section class="panel">
-  <h2>Race window conditions</h2>
-  <p class="cap" id="wcap"></p>
-  <div class="grid" id="metrics"></div>
-</section>
-<section class="panel">
-  <h2>Wind and rig</h2>
-  <p class="cap">Rig ranges follow the RC Laser A, B and C sails: A about 1–8 mph, B about 8–18 mph, C about 18–25 mph. The go and no-go limits are guidance. Your race committee decides.</p>
-  <div class="gauge" id="gauge"></div>
-</section>
-<section class="panel">
-  <h2>Tide</h2>
-  <p class="cap">Height in feet above MLLW. The shaded band is the race window.</p>
-  <svg id="chart" viewBox="0 0 720 240" role="img" aria-label="Tide curve with the race window shaded"></svg>
-  <div class="tl" id="tl"></div>
-</section>
-<p class="foot" id="foot"></p>
-</div>
-<script>
-// Snapshot data for one Sunday, refreshed by republishing this page. Times EST (clocks are on standard time).
-var DATA={
-  date:"2026-11-15", label:"Sun Nov 15",
-  issued:"Fri Nov 13, 2026, 8:40 AM EST",
-  windDir:"NW", windDeg:315, windMph:13, gust:null,
-  tempLo:46, tempHi:51, // two sources: 46 and 51 for the daytime high
-  lowTemp:34, precip:5, sky:"Mostly sunny", sunset:"4:25 PM",
-  tides:[["04:32","L",0.67],["11:39","H",3.32],["17:06","L",0.72],["24:03","H",3.33]] // last row is Mon 12:03 AM, for the curve only
-};
-var WIN=[11.5*60,15*60]; // 11:30 AM to 3:00 PM
-var $=function(i){return document.getElementById(i)};
-function hm(s){var a=s.split(":");return +a[0]*60+ +a[1]}
-function fmt(m){var h=Math.floor(m/60)%24,mm=("0"+Math.round(m%60)).slice(-2),ap=h>=12?"PM":"AM";h=h%12||12;return h+":"+mm+" "+ap}
-function kt(m){return Math.round(m*0.869)}
-function pad(n){return ("0"+n).slice(-2)}
-function targetSunday(){var n=new Date(),d=new Date(n.getFullYear(),n.getMonth(),n.getDate()),add=(7-d.getDay())%7;d.setDate(d.getDate()+add);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
-// zones in mph: [from,to,name,color var,short]
-var ZONES=[[0,3,"No-go, too light","--bad"],[3,8,"A rig","--ok"],[8,18,"B rig (standard)","--ok"],[18,25,"C rig (storm)","--warn"],[25,30,"No-go, too strong","--bad"]];
-function call(w){
-  if(w<3)return {t:"No-go",c:"--bad",b:"--badbg",rig:"No rig works",rx:"Under 3 mph the boats drift and races stall. Hold for a breeze or call it off."};
-  if(w<8)return {t:"Go",c:"--ok",b:"--okbg",rig:"A rig (large, 949 sq in)",rx:"Light air, so use the biggest sail. Switch to the standard rig if the wind builds past 8 mph."};
-  if(w<=18)return {t:"Go",c:"--ok",b:"--okbg",rig:"B rig (standard, 710 sq in)",rx:w>=15?"Upper end of the standard rig's range. Have the storm sail ready if it builds.":"Comfortable range for the standard sail. Have the storm sail ready if gusts push past 18 mph."};
-  if(w<=25)return {t:"Go, caution",c:"--warn",b:"--warnbg",rig:"C rig (storm sail)",rx:"Strong wind. Storm sail only, and expect capsizes and lost control in the gusts."};
-  return {t:"No-go",c:"--bad",b:"--badbg",rig:"No rig works",rx:"Above 25 mph even the storm sail is too much. Call racing off."}
-}
-function tideAt(t){var T=DATA.tides.map(function(r){return [hm(r[0]),r[2]]});
-  for(var i=0;i<T.length-1;i++){if(t>=T[i][0]&&t<=T[i+1][0]){var f=(t-T[i][0])/(T[i+1][0]-T[i][0]);return T[i][1]+(T[i+1][1]-T[i][1])*(1-Math.cos(Math.PI*f))/2}}return null}
-function render(){
-  $("sub").textContent=DATA.label+" · racing 11:30 AM to 3:00 PM";
-  $("stamp").textContent=DATA.issued;
-  var want=targetSunday(),st=$("stale");
-  if(DATA.date!==want){st.hidden=false;st.textContent=DATA.date<want?"This forecast is for "+DATA.label+", which has passed. The forecast for the next Sunday has not been published yet. Press Refresh to check.":"This page still shows "+DATA.label+". Press Refresh to check for an update."}
-  var c=call(DATA.windMph),el=$("call");
-  el.style.setProperty("--c","var("+c.c+")");el.style.setProperty("--cb","var("+c.b+")");
-  el.innerHTML='<div><div class="k">Race call</div><div class="big">'+c.t+'</div></div><div class="rig"><div class="k">Sail recommendation</div><b>'+c.rig+'</b><p>'+c.rx+'</p></div>';
-  $("wcap").textContent=DATA.sky+". Sunset "+DATA.sunset+", so there is daylight to spare after racing.";
-  var arrow='<svg viewBox="0 0 40 40" width="26" height="26" style="vertical-align:-4px;margin-right:4px" aria-hidden="true"><g transform="rotate('+(DATA.windDeg+180)+' 20 20)"><path d="M20 4 L28 22 L22 20 L22 36 L18 36 L18 20 L12 22 Z" fill="var(--wind)"/></g></svg>';
-  $("metrics").innerHTML=
-   '<div class="m" style="--c:var(--wind)"><div class="l">Wind from</div><div class="v">'+arrow+DATA.windDir+' '+DATA.windMph+'<small> mph</small></div><div class="s">'+kt(DATA.windMph)+' kt · gusts '+(DATA.gust?DATA.gust+" mph":"not listed")+'</div></div>'+
-   '<div class="m" style="--c:var(--temp)"><div class="l">Air temperature</div><div class="v">'+DATA.tempLo+'–'+DATA.tempHi+'<small>°F</small></div><div class="s">Daytime high, sources differ. Overnight low '+DATA.lowTemp+'°. Bring gloves.</div></div>'+
-   '<div class="m" style="--c:var(--rain)"><div class="l">Precipitation</div><div class="v">'+DATA.precip+'<small> %</small></div><div class="s">Dry</div></div>'+
-   '<div class="m" style="--c:var(--tide)"><div class="l">Tide in window</div><div class="v">'+tideAt(WIN[0]).toFixed(1)+'→'+tideAt(WIN[1]).toFixed(1)+'<small> ft</small></div><div class="s">High at 11:39 AM, then falling</div></div>';
-  gauge();chart();
-}
-function gauge(){
-  var max=30,h='<div class="gtrack">';
-  ZONES.forEach(function(z){h+='<i style="width:'+((z[1]-z[0])/max*100)+'%;background:var('+z[3]+')"></i>'});
-  h+='</div><div class="gscale"><div class="gmark" style="left:'+(Math.min(DATA.windMph,max)/max*100)+'%"></div>';
-  [0,5,10,15,20,25,30].forEach(function(v){h+='<span style="left:'+(v/max*100)+'%">'+v+'</span>'});
-  h+='</div><div class="zl">'+ZONES.map(function(z){return '<span><b style="background:var('+z[3]+')"></b>'+z[2]+' ('+z[0]+'–'+z[1]+' mph)</span>'}).join("")+'</div>';
-  $("gauge").innerHTML=h;
-}
-function chart(){
-  var W=720,H=240,L=36,R=12,T=14,B=28,x0=9*60,x1=17*60,ymin=0,ymax=4,
-      X=function(t){return L+(t-x0)/(x1-x0)*(W-L-R)},Y=function(v){return T+(ymax-v)/(ymax-ymin)*(H-T-B)},s="",i;
-  s+='<rect x="'+X(WIN[0])+'" y="'+T+'" width="'+(X(WIN[1])-X(WIN[0]))+'" height="'+(H-T-B)+'" fill="var(--win)"/>';
-  for(i=0;i<=4;i++)s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(i)+'" y2="'+Y(i)+'" stroke="var(--line)"/><text x="10" y="'+(Y(i)+4)+'">'+i+'</text>';
-  for(i=9;i<=17;i++){var lab=(i%12||12)+(i<12?"a":"p");s+='<line x1="'+X(i*60)+'" x2="'+X(i*60)+'" y1="'+T+'" y2="'+(H-B)+'" stroke="var(--line)" stroke-dasharray="2 4"/><text x="'+(X(i*60)-8)+'" y="'+(H-8)+'">'+lab+'</text>'}
-  var pts=[];for(var t=x0;t<=x1;t+=5){var v=tideAt(t);if(v!==null)pts.push([X(t),Y(v)])}
-  var path="M"+pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1)}).join("L");
-  s+='<path d="'+path+'L'+pts[pts.length-1][0]+","+Y(0)+'L'+pts[0][0]+","+Y(0)+'Z" fill="var(--tide-fill)" opacity=".85"/><path d="'+path+'" fill="none" stroke="var(--tide)" stroke-width="2.5"/>';
-  s+='<text x="'+(X(WIN[0])+6)+'" y="'+(T+12)+'" style="fill:var(--wind)">race window 11:30a–3:00p</text>';
-  var out="";
-  DATA.tides.forEach(function(r){var m=hm(r[0]);if(m>=24*60)return;
-    var cx=X(m);if(cx>=L&&cx<=W-R)s+='<circle cx="'+cx+'" cy="'+Y(r[2])+'" r="4.5" fill="var(--panel)" stroke="var(--tide)" stroke-width="2"/><text x="'+(cx-14)+'" y="'+(r[1]==="H"?Y(r[2])-9:Y(r[2])+18)+'">'+r[2].toFixed(1)+'</text>';
-    out+='<div class="'+r[1]+'">'+(r[1]==="H"?"High":"Low")+' '+fmt(m)+' · '+r[2].toFixed(2)+' ft</div>'});
-  $("chart").innerHTML=s;$("tl").innerHTML=out;
-}
-$("foot").innerHTML='Conditions from <a href="https://www.foxweather.com/local-weather/rhode-island/east-greenwich">Fox Weather</a> and <a href="https://www.weatherbug.com/weather-forecast/10-day-weather/east-greenwich-ri-02818">WeatherBug</a>. Tides from <a href="https://www.tide-forecast.com/tide/East-Greenwich-Narragansett-Bay-Rhode-Island/tide-times">Tide-Forecast</a>. The sources give one wind speed for the day, not hourly values, so the same wind applies across the window. Gusts are not listed. Rig wind ranges are from the <a href="https://sailingtexas.com/crclaseracc.html">RC Laser accessories listing</a>, which gives slightly different numbers in different sections. Refresh loads the newest published version of this page; it does not fetch live weather.';
-$("rf").addEventListener("click",function(){var b=$("rf");b.disabled=true;$("rs").textContent="Loading latest version…";setTimeout(function(){try{location.reload()}catch(e){b.disabled=false;$("rs").textContent="Could not reload. Close and reopen the page."}},400)});
-render();
-</script>
 
-</body></html>
+<main>
+  <div id="errHost"></div>
+
+  <div class="grid">
+    <section class="card" id="cardStatus" aria-live="polite"><h2>Race Status</h2><div>Loading&hellip;</div></section>
+    <section class="card cons" id="cardWind"><h2>Wind Consensus</h2><div>Loading&hellip;</div></section>
+    <section class="card" id="cardTide"><h2>Tide</h2><div>Loading&hellip;</div></section>
+  </div>
+
+  <section class="card" id="cardTable">
+    <h2>Race Window Forecast</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Time</th><th>Direction</th><th>Wind</th><th>Gust</th><th>Tide</th><th>Temperature</th><th>Precipitation</th><th>Thunder</th></tr></thead>
+      <tbody id="tbody"><tr><td colspan="8">Loading&hellip;</td></tr></tbody>
+    </table></div>
+    <p class="note" id="tableNote"></p>
+  </section>
+
+  <div class="maps">
+    <section class="card" id="cardRadar">
+      <h2>Radar</h2>
+      <iframe class="mapframe" id="radarFrame" title="Weather radar centered on East Greenwich, RI" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      <p class="note"><a id="radarLink" target="_blank" rel="noopener">Open radar in a new tab</a></p>
+    </section>
+    <section class="card" id="cardWindMap">
+      <h2>Wind Map</h2>
+      <iframe class="mapframe" id="windFrame" title="Wind map centered on East Greenwich, RI" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      <p class="note"><a id="windLink" target="_blank" rel="noopener">Open wind map in a new tab</a></p>
+    </section>
+  </div>
+
+  <div class="grid">
+    <section class="card" id="cardFactors"><h2>Triggering Factors</h2><div>Loading&hellip;</div></section>
+    <section class="card" id="cardSources"><h2>Data Sources</h2><div>Loading&hellip;</div></section>
+  </div>
+
+  <footer>
+    <div id="method"></div>
+    <div><button id="btnTests" type="button">Run self-tests</button></div>
+    <div class="tests" id="testOut" aria-live="polite"></div>
+  </footer>
+</main>
+
+<script>
+"use strict";
+/* Keep a pristine copy of the page source for the "Download page" button. */
+var PAGE_SOURCE = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+
+/* ------------------------------------------------------------------ config */
+var CFG = {
+  LAT: 41.67, LON: -70.73, TZ: "America/New_York",
+  MAP_LAT: 41.66, MAP_LON: -71.46, MAP_NAME: "East Greenwich, RI",
+  STATION: "8454578", STATION_NAME: "East Greenwich",
+  TIMEOUT_MS: 15000, AUTO_REFRESH_MS: 15 * 60 * 1000,
+  // Exactly these four rows are shown. 11:30 AM is interpolated between the 11:00 and 12:00 hourly values.
+  ROWS: [
+    { label: "11:30 AM", min: 11 * 60 + 30 },
+    { label: "12:00 PM", min: 12 * 60 },
+    { label: "1:00 PM",  min: 13 * 60 },
+    { label: "2:00 PM",  min: 14 * 60 }
+  ],
+  // Per-factor limits, applied to values rounded to whole numbers.
+  // level = NO-GO if value > nogoAbove; MARGINAL if value >= marginalMin; otherwise GO.
+  // Sustained 25 mph exactly is MARGINAL: the brief puts GO below 25 and NO-GO above 25, and
+  // leaves 19 to 25 mph between its marginal band (16 to 19) and the NO-GO limit, so the
+  // marginal band runs 16 to 25 here.
+  LIMITS: {
+    wind:    { marginalMin: 16, nogoAbove: 25, label: "Sustained wind", unit: "mph", text: "GO under 16, MARGINAL 16 to 25, NO-GO over 25" },
+    gust:    { marginalMin: 20, nogoAbove: 25, label: "Gusts",          unit: "mph", text: "GO under 20, MARGINAL 20 to 25, NO-GO over 25" },
+    pop:     { marginalMin: 51, nogoAbove: 70, label: "Precipitation",  unit: "%",   text: "GO up to 50, MARGINAL 51 to 70, NO-GO over 70" },
+    thunder: { marginalMin: 21, nogoAbove: 50, label: "Thunder",        unit: "%",   text: "GO up to 20, MARGINAL 21 to 50, NO-GO over 50" }
+  },
+  // Thunder probability is not a field in either hourly feed, so it is estimated:
+  // Open-Meteo weather_code 95/96/99, and the wording of the NWS shortForecast.
+  THUNDER_CODE: { 95: 60, 96: 80, 99: 90 }
+};
+
+/* Rig recommendation from https://lasersailingtips.com/the-rc-laser-sailboat/ (wind in knots).
+   The page lists A: under 6, B: 7-16, C: 17-22, D: over 23. Whole-knot values fall cleanly into
+   A <= 6, B 7-16, C 17-22, D >= 23, so the wind is rounded to whole knots before choosing. */
+var KT_PER_MPH = 0.868976;
+var RIGS = [
+  { id: "A", upTo: 6,        range: "under 6 kt",  area: "949 sq in (0.612 m\u00b2)", mast: "1.7 m mast" },
+  { id: "B", upTo: 16,       range: "7 to 16 kt",  area: "710 sq in (0.458 m\u00b2)", mast: "1.35 m mast" },
+  { id: "C", upTo: 22,       range: "17 to 22 kt", area: "600 sq in (0.387 m\u00b2)", mast: "1.35 m mast" },
+  { id: "D", upTo: Infinity, range: "over 23 kt",  area: "300 sq in (0.193 m\u00b2)", mast: "1.35 m mast" }
+];
+function rigFor(mph) {
+  if (mph == null || isNaN(mph)) return null;
+  var kt = Math.round(mph * KT_PER_MPH);
+  for (var i = 0; i < RIGS.length; i++) if (kt <= RIGS[i].upTo) return { rig: RIGS[i], index: i, kt: kt };
+  return null;
+}
+
+var state = {
+  clockOverride: null,           // testing hook: "YYYY-MM-DDTHH:MM" Eastern wall time
+  fail: { om: false, nws: false, noaa: false },   // testing hook: simulate outages
+  raceN: null, raceYMD: null,
+  sources: {
+    om:   { name: "Open-Meteo",  status: "idle", msg: "", at: null, ms: null },
+    nws:  { name: "NWS",         status: "idle", msg: "", at: null, ms: null },
+    noaa: { name: "NOAA Tides",  status: "idle", msg: "", at: null, ms: null }
+  },
+  data: { om: null, nws: null, noaa: null },
+  rows: [], summary: null, consensus: null, tide: null, lastRefresh: null, busy: false
+};
+
+/* ----------------------------------------------------------------- logging */
+function log() { var a = Array.prototype.slice.call(arguments); a.unshift("[RC-DASH]"); console.log.apply(console, a); }
+function warn() { var a = Array.prototype.slice.call(arguments); a.unshift("[RC-DASH]"); console.warn.apply(console, a); }
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+/* --------------------------------------------------------- date and time
+   All times are Eastern wall-clock times, held as "naive" minute counts
+   (minutes since 1970-01-01 as if the wall clock were UTC). */
+function naive(y, m, d, H, M) { return Date.UTC(y, m - 1, d, H || 0, M || 0) / 60000; }
+function fromNaive(n) { var dt = new Date(n * 60000); return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate(), H: dt.getUTCHours(), M: dt.getUTCMinutes() }; }
+function parseLocal(s) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(String(s));
+  return m ? naive(+m[1], +m[2], +m[3], +m[4], +m[5]) : null;
+}
+function getNow() {
+  if (state.clockOverride) { var n = parseLocal(state.clockOverride); if (n != null) return fromNaive(n); }
+  var parts = new Intl.DateTimeFormat("en-US", { timeZone: CFG.TZ, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+  var o = {}; parts.forEach(function (p) { o[p.type] = p.value; });
+  return { y: +o.year, m: +o.month, d: +o.day, H: +o.hour % 24, M: +o.minute };
+}
+/* Nearest upcoming Sunday, or today when today is a Sunday. */
+function raceDateFor(now) {
+  var dow = new Date(Date.UTC(now.y, now.m - 1, now.d)).getUTCDay();
+  var dt = new Date(Date.UTC(now.y, now.m - 1, now.d + ((7 - dow) % 7)));
+  return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() };
+}
+function ymd(o, sep) { return o.y + sep + pad2(o.m) + sep + pad2(o.d); }
+function fmtClock(H, M) { var ap = H >= 12 ? "PM" : "AM", h = H % 12 || 12; return h + ":" + pad2(M) + " " + ap; }
+function fmtN(n) { var o = fromNaive(n); return fmtClock(o.H, o.M); }
+function fmtDuration(mins) { var m = Math.max(0, Math.round(mins)); var h = Math.floor(m / 60); return h > 0 ? h + "h " + pad2(m % 60) + "m" : m + "m"; }
+var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fmtRaceDate(o) { return "Sunday, " + MONTHS[o.m - 1] + " " + o.d + ", " + o.y; }
+
+/* ------------------------------------------------------------ wind maths */
+var RAD = Math.PI / 180;
+var CARD = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+function cardinal(deg) { return deg == null ? "—" : CARD[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16]; }
+function cardToDeg(c) { var i = CARD.indexOf(String(c || "").toUpperCase().trim()); return i < 0 ? null : i * 22.5; }
+function toUV(speed, dir) { return { u: -speed * Math.sin(dir * RAD), v: -speed * Math.cos(dir * RAD) }; }
+function fromUV(u, v) { var sp = Math.hypot(u, v); return { speed: sp, dir: sp < 1e-9 ? null : ((Math.atan2(-u, -v) / RAD) + 360) % 360 }; }
+/* Vector average of directions (speed weighted). items: [{speed, dir}] */
+function vectorMeanDir(items) {
+  var u = 0, v = 0, n = 0;
+  items.forEach(function (x) { if (x && x.speed != null && x.dir != null) { var c = toUV(x.speed, x.dir); u += c.u; v += c.v; n++; } });
+  if (!n) return null;
+  return fromUV(u / n, v / n).dir;
+}
+function mean(a) { a = a.filter(function (x) { return x != null && !isNaN(x); }); return a.length ? a.reduce(function (s, x) { return s + x; }, 0) / a.length : null; }
+function dirDiff(a, b) { return Math.abs(((a - b + 540) % 360) - 180); }
+
+/* ------------------------------------------------------------ thunder estimate */
+function thunderFromText(s) {
+  s = String(s || "").toLowerCase();
+  if (s.indexOf("thunder") < 0) return 0;
+  if (s.indexOf("slight chance") >= 0 || s.indexOf("isolated") >= 0) return 20;
+  if (s.indexOf("chance") >= 0 || s.indexOf("scattered") >= 0) return 40;
+  if (/likely|numerous|widespread/.test(s)) return 60;
+  return 80;
+}
+
+/* ---------------------------------------------------------------- fetching */
+function getJSON(url, opts, key) {
+  if (state.fail[key]) return Promise.reject(new Error("Simulated failure (testing hook)"));
+  var ctl = new AbortController();
+  var timer = setTimeout(function () { ctl.abort(); }, CFG.TIMEOUT_MS);
+  var o = Object.assign({ signal: ctl.signal, cache: "no-store" }, opts || {});
+  log("GET", url);
+  return fetch(url, o).then(function (res) {
+    clearTimeout(timer);
+    if (!res.ok) throw new Error("HTTP " + res.status + " " + (res.statusText || ""));
+    return res.json();
+  }).catch(function (e) {
+    clearTimeout(timer);
+    if (e && e.name === "AbortError") throw new Error("Timed out after " + (CFG.TIMEOUT_MS / 1000) + " s");
+    throw e;
+  });
+}
+
+function fetchOM() {
+  var d = ymd(state.raceYMD, "-");
+  var url = "https://api.open-meteo.com/v1/forecast?latitude=" + CFG.LAT + "&longitude=" + CFG.LON +
+    "&hourly=temperature_2m,precipitation_probability,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code" +
+    "&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=" + encodeURIComponent(CFG.TZ) + "&start_date=" + d + "&end_date=" + d;
+  return getJSON(url, null, "om").then(function (j) {
+    var h = j && j.hourly;
+    if (!h || !Array.isArray(h.time) || !h.time.length) throw new Error("Response has no hourly data");
+    var map = {};
+    h.time.forEach(function (t, i) {
+      var n = parseLocal(t); if (n == null) return;
+      var code = h.weather_code ? h.weather_code[i] : null;
+      map[n] = {
+        temp: h.temperature_2m ? h.temperature_2m[i] : null,
+        pop: h.precipitation_probability ? h.precipitation_probability[i] : null,
+        wind: h.wind_speed_10m ? h.wind_speed_10m[i] : null,
+        gust: h.wind_gusts_10m ? h.wind_gusts_10m[i] : null,
+        dir: h.wind_direction_10m ? h.wind_direction_10m[i] : null,
+        code: code, thunder: CFG.THUNDER_CODE[code] || 0
+      };
+    });
+    log("Open-Meteo hours loaded:", Object.keys(map).length);
+    return map;
+  });
+}
+
+function fetchNWS() {
+  var hdr = { headers: { "Accept": "application/geo+json" } };
+  return getJSON("https://api.weather.gov/points/" + CFG.LAT + "," + CFG.LON, hdr, "nws").then(function (p) {
+    var url = p && p.properties && p.properties.forecastHourly;
+    if (!url) throw new Error("points response has no forecastHourly URL");
+    log("NWS forecastHourly:", url);
+    return getJSON(url, hdr, "nws");
+  }).then(function (j) {
+    var periods = j && j.properties && j.properties.periods;
+    if (!Array.isArray(periods) || !periods.length) throw new Error("Hourly forecast has no periods");
+    var map = {};
+    periods.forEach(function (p) {
+      var n = parseLocal(p.startTime); if (n == null) return;
+      var ws = /(\d+)(?:\s*to\s*(\d+))?\s*mph/i.exec(String(p.windSpeed || ""));
+      var lo = ws ? +ws[1] : null, hi = ws ? (ws[2] ? +ws[2] : +ws[1]) : null;
+      var temp = p.temperature != null ? +p.temperature : null;
+      if (temp != null && String(p.temperatureUnit || "F").toUpperCase() === "C") temp = temp * 9 / 5 + 32;
+      var pop = p.probabilityOfPrecipitation && p.probabilityOfPrecipitation.value != null ? +p.probabilityOfPrecipitation.value : null;
+      map[n] = {
+        temp: temp, pop: pop,
+        wind: lo == null ? null : (lo + hi) / 2, windMin: lo, windMax: hi,
+        gust: null, dir: cardToDeg(p.windDirection),
+        text: p.shortForecast || "", thunder: thunderFromText(p.shortForecast)
+      };
+    });
+    var d0 = state.raceN, got = Object.keys(map).some(function (k) { return +k >= d0 && +k < d0 + 1440; });
+    if (!got) throw new Error("Forecast does not reach the race date");
+    log("NWS hours loaded:", Object.keys(map).length);
+    return map;
+  });
+}
+
+function fetchNOAA() {
+  var b = fromNaive(state.raceN - 1440), e = fromNaive(state.raceN + 1440);
+  var url = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=rc_laser_dashboard" +
+    "&begin_date=" + ymd(b, "") + "&end_date=" + ymd(e, "") + "&datum=MLLW&station=" + CFG.STATION +
+    "&time_zone=lst_ldt&units=english&interval=hilo&format=json";
+  return getJSON(url, null, "noaa").then(function (j) {
+    if (j && j.error) throw new Error(j.error.message || "NOAA returned an error");
+    if (!j || !Array.isArray(j.predictions) || !j.predictions.length) throw new Error("No tide predictions returned");
+    var ev = j.predictions.map(function (p) { return { t: parseLocal(p.t), v: parseFloat(p.v), type: p.type === "H" ? "H" : "L" }; })
+      .filter(function (x) { return x.t != null && !isNaN(x.v); }).sort(function (a, c) { return a.t - c.t; });
+    if (ev.length < 2) throw new Error("Too few tide events");
+    log("NOAA tide events:", ev.length);
+    return ev;
+  });
+}
+
+var FETCHERS = { om: fetchOM, nws: fetchNWS, noaa: fetchNOAA };
+
+function loadSource(key) {
+  var s = state.sources[key];
+  s.status = "loading"; s.msg = "Loading…"; renderSources();
+  var t0 = performance.now();
+  return FETCHERS[key]().then(function (data) {
+    state.data[key] = data; s.status = "ok"; s.msg = "Loaded"; s.at = Date.now(); s.ms = Math.round(performance.now() - t0);
+    log(s.name, "OK in", s.ms, "ms");
+  }).catch(function (e) {
+    state.data[key] = null; s.status = "error"; s.msg = (e && e.message) || String(e); s.ms = Math.round(performance.now() - t0);
+    warn(s.name, "FAILED:", s.msg);
+  });
+}
+
+/* ------------------------------------------------------------- sampling */
+function lerp(a, b, f) { return a == null || b == null ? (a == null ? b : a) : a + (b - a) * f; }
+function interp(a, b, f) {
+  if (!a || !b) return a || b || null;
+  var dir = null;
+  if (a.dir != null && b.dir != null) {
+    var ua = toUV(a.wind != null ? Math.max(a.wind, 1e-6) : 1, a.dir), ub = toUV(b.wind != null ? Math.max(b.wind, 1e-6) : 1, b.dir);
+    dir = fromUV(lerp(ua.u, ub.u, f), lerp(ua.v, ub.v, f)).dir;
+  } else dir = a.dir != null ? a.dir : b.dir;
+  return {
+    temp: lerp(a.temp, b.temp, f), pop: lerp(a.pop, b.pop, f), wind: lerp(a.wind, b.wind, f), gust: lerp(a.gust, b.gust, f),
+    dir: dir, thunder: Math.max(a.thunder || 0, b.thunder || 0), code: Math.max(a.code || 0, b.code || 0),
+    text: a.text || b.text || "", interpolated: true
+  };
+}
+function sample(map, t) {
+  if (!map) return null;
+  if (map[t]) return map[t];
+  if (t % 60 === 0) return null;
+  var t0 = t - (t % 60), t1 = t0 + 60;
+  if (map[t0] && map[t1]) return interp(map[t0], map[t1], (t - t0) / 60);
+  return null;
+}
+
+/* ----------------------------------------------------------------- tides */
+function tideAt(ev, t) {
+  if (!ev) return null;
+  var prev = null, next = null;
+  for (var i = 0; i < ev.length; i++) { if (ev[i].t <= t) prev = ev[i]; else { next = ev[i]; break; } }
+  if (!prev || !next) return null;
+  return { state: prev.type === "L" ? "Flood" : "Ebb", prev: prev, next: next };
+}
+function tideSummary(ev) {
+  if (!ev) return null;
+  var now = getNow(), nowN = naive(now.y, now.m, now.d, now.H, now.M);
+  var raceStart = state.raceN + CFG.ROWS[0].min;
+  var isToday = Math.floor(nowN / 1440) === Math.floor(state.raceN / 1440);
+  var ref = isToday ? nowN : raceStart;
+  var st = tideAt(ev, ref); if (!st) return null;
+  var nextH = ev.filter(function (e) { return e.t > ref && e.type === "H"; })[0] || null;
+  var nextL = ev.filter(function (e) { return e.t > ref && e.type === "L"; })[0] || null;
+  return { state: st.state, ref: ref, refLabel: isToday ? "now" : "race start, 11:30 AM", nextH: nextH, nextL: nextL, change: st.next, minsToChange: st.next.t - ref };
+}
+
+/* ------------------------------------------------------------- classify */
+var ORDER = { unknown: -1, go: 0, marginal: 1, nogo: 2 };
+function level(kind, v) {
+  if (v == null || isNaN(v)) return "unknown";
+  v = Math.round(v);
+  var L = CFG.LIMITS[kind];
+  if (v > L.nogoAbove) return "nogo";
+  if (v >= L.marginalMin) return "marginal";
+  return "go";
+}
+function worst(levels) {
+  var best = "unknown";
+  levels.forEach(function (l) { if (ORDER[l] > ORDER[best]) best = l; });
+  return best;
+}
+var LV_TEXT = { go: "GO", marginal: "MARGINAL", nogo: "NO-GO", unknown: "NO DATA" };
+
+/* ---------------------------------------------------------- build the rows */
+function confidence(rows) {
+  var dd = [], sd = [];
+  rows.forEach(function (r) {
+    if (r.om && r.nws && r.om.wind != null && r.nws.wind != null) {
+      sd.push(Math.abs(r.om.wind - r.nws.wind));
+      if (r.om.dir != null && r.nws.dir != null) dd.push(dirDiff(r.om.dir, r.nws.dir));
+    }
+  });
+  if (!sd.length) return null;
+  var md = dd.length ? mean(dd) : 0, ms = mean(sd);
+  var score = Math.max(0, Math.min(100, Math.round(100 - Math.min(50, md * 0.6) - Math.min(50, ms * 6))));
+  var label = (md <= 30 && ms <= 3) ? "High" : (md > 60 || ms > 6) ? "Low" : "Medium";
+  return { label: label, score: score, meanDirDiff: md, meanSpeedDiff: ms };
+}
+
+function compute() {
+  var om = state.data.om, nws = state.data.nws, tide = state.data.noaa;
+  var rows = CFG.ROWS.map(function (r) {
+    var t = state.raceN + r.min;
+    var o = sample(om, t), n = sample(nws, t);
+    var both = o && n && o.wind != null && n.wind != null;
+    var wind = null, dir = null;
+    if (both) {
+      wind = (o.wind + n.wind) / 2;
+      dir = vectorMeanDir([{ speed: o.wind, dir: o.dir }, { speed: n.wind, dir: n.dir }]);
+      if (dir == null) dir = o.dir != null ? o.dir : n.dir;
+    } else if (o && o.wind != null) { wind = o.wind; dir = o.dir; }
+    else if (n && n.wind != null) { wind = n.wind; dir = n.dir; }
+    var temps = [o && o.temp, n && n.temp].filter(function (x) { return x != null; });
+    var pops = [o && o.pop, n && n.pop].filter(function (x) { return x != null; });
+    var thunders = [o && o.thunder, n && n.thunder].filter(function (x) { return x != null; });
+    var ts = tideAt(tide, t);
+    var row = {
+      label: r.label, t: t, om: o, nws: n, wind: wind, dir: dir,
+      gust: o && o.gust != null ? o.gust : null,
+      temp: temps.length ? mean(temps) : null,
+      pop: pops.length ? Math.max.apply(null, pops) : null,
+      thunder: thunders.length ? Math.max.apply(null, thunders) : null,
+      tide: ts ? ts.state : null, interpolated: !!((o && o.interpolated) || (n && n.interpolated))
+    };
+    log("Forecast row", r.label, JSON.stringify({ wind: row.wind, dir: row.dir, gust: row.gust, temp: row.temp, pop: row.pop, thunder: row.thunder, tide: row.tide, om: o, nws: n }));
+    return row;
+  });
+  state.rows = rows;
+
+  // Wind consensus over the race rows
+  var omRows = rows.filter(function (r) { return r.om && r.om.wind != null; }).map(function (r) { return { speed: r.om.wind, dir: r.om.dir }; });
+  var nwsRows = rows.filter(function (r) { return r.nws && r.nws.wind != null; }).map(function (r) { return { speed: r.nws.wind, dir: r.nws.dir }; });
+  var cons = {
+    om: omRows.length ? { speed: mean(omRows.map(function (x) { return x.speed; })), dir: vectorMeanDir(omRows) } : null,
+    nws: nwsRows.length ? { speed: mean(nwsRows.map(function (x) { return x.speed; })), dir: vectorMeanDir(nwsRows) } : null,
+    both: null, confidence: null
+  };
+  if (cons.om && cons.nws) {
+    var cd = vectorMeanDir([{ speed: cons.om.speed, dir: cons.om.dir }, { speed: cons.nws.speed, dir: cons.nws.dir }]);
+    cons.both = { speed: (cons.om.speed + cons.nws.speed) / 2, dir: cd != null ? cd : (cons.om.dir != null ? cons.om.dir : cons.nws.dir) };
+    cons.confidence = confidence(rows);
+  }
+  state.consensus = cons;
+  log("Consensus", JSON.stringify(cons));
+
+  // Race status from the four rows
+  var maxOf = function (key, rnd) { var v = rows.map(function (r) { return r[key]; }).filter(function (x) { return x != null; }); return v.length ? Math.round(Math.max.apply(null, v)) : null; };
+  var sum = { wind: maxOf("wind"), gust: maxOf("gust"), pop: maxOf("pop"), thunder: maxOf("thunder") };
+  sum.windRaw = (function () { var v = rows.map(function (r) { return r.wind; }).filter(function (x) { return x != null; }); return v.length ? Math.max.apply(null, v) : null; })();
+  sum.rig = rigFor(sum.windRaw);
+  sum.levels = { wind: level("wind", sum.wind), gust: level("gust", sum.gust), pop: level("pop", sum.pop), thunder: level("thunder", sum.thunder) };
+  sum.overall = worst([sum.levels.wind, sum.levels.gust, sum.levels.pop, sum.levels.thunder]);
+  sum.partial = Object.keys(sum.levels).some(function (k) { return sum.levels[k] === "unknown"; });
+  state.summary = sum;
+  log("Race status", JSON.stringify(sum));
+  state.tide = tideSummary(tide);
+}
+
+/* ------------------------------------------------------------------ render */
+function chip(status, text) { return '<span class="pill bg-' + esc(status) + '">' + esc(text) + '</span>'; }
+function fmtDirWind(dir, speed) { return speed == null ? "—" : (dir == null ? "" : cardinal(dir) + " " + Math.round(dir) + "° · ") + Math.round(speed) + " mph"; }
+
+function renderSources() {
+  var h = '<h2>Data Sources</h2>';
+  Object.keys(state.sources).forEach(function (k) {
+    var s = state.sources[k], label = { idle: "Idle", loading: "Loading", ok: "OK", error: "Error" }[s.status];
+    if (k === "nws" && s.status === "error") label = "Error";
+    var note = s.status === "ok" ? "Loaded in " + s.ms + " ms" : s.msg;
+    if (k === "nws" && s.status === "error") note += " — Consensus Disabled";
+    if (k === "noaa" && s.status === "error") note += " — tide unavailable";
+    h += '<div class="src"><div><span class="nm" style="font-weight:600">' + esc(s.name) + '</span> ' + chip(s.status, label) +
+      '</div><button class="tiny" data-retry="' + k + '" type="button"' + (s.status === "loading" || state.busy ? " disabled" : "") + '>Retry</button>' +
+      '<div class="msg">' + esc(note) + '</div></div>';
+  });
+  $("cardSources").innerHTML = h;
+}
+
+function renderErrCard() {
+  var s = state.sources.om;
+  $("errHost").innerHTML = s.status === "error" ?
+    '<section class="card errcard" role="alert"><h2>Open-Meteo unavailable</h2><p style="margin:0 0 10px">' + esc(s.msg) +
+    '.' + (state.sources.nws.status === "ok" ? " Showing the National Weather Service forecast only, without gusts or a consensus." : " No forecast is available until a source loads.") +
+    '</p><button class="primary" data-retry="om" type="button">Retry Open-Meteo</button></section>' : "";
+}
+
+function renderStatus() {
+  var s = state.summary;
+  var lv = s.overall, c = { go: ["--go", "--gobg"], marginal: ["--marg", "--margbg"], nogo: ["--nogo", "--nogobg"], unknown: ["--unk", "--unkbg"] }[lv];
+  var u = function (v, unit) { return v == null ? "—" : v + " " + unit; };
+  $("cardStatus").innerHTML = '<h2>Race Status</h2><div class="statusbox" style="--c:var(' + c[0] + ');--cb:var(' + c[1] + ')"><div class="big lv-' + lv + '">' + LV_TEXT[lv] + '</div>' +
+    '<div class="note" style="margin-top:6px">Worst of the four factors across 11:30 AM to 2:00 PM' + (s.partial ? '. Some factors have no data.' : '') + '</div></div>' + rigHTML(s) +
+    '<div class="kv"><div><div class="k">Max Sustained Wind</div><div class="v">' + u(s.wind, "mph") + '</div></div>' +
+    '<div><div class="k">Max Gust</div><div class="v">' + u(s.gust, "mph") + '</div></div>' +
+    '<div><div class="k">Max Precipitation</div><div class="v">' + u(s.pop, "%") + '</div></div>' +
+    '<div><div class="k">Max Thunder</div><div class="v">' + u(s.thunder, "%") + '</div></div></div>';
+  var f = '<h2>Triggering Factors</h2>';
+  ["wind", "gust", "pop", "thunder"].forEach(function (k) {
+    var L = CFG.LIMITS[k], l = s.levels[k], v = s[k];
+    f += '<div class="row"><div><div class="nm">' + L.label + '</div><div class="ds">' + esc(L.text) + '</div></div><div style="text-align:right"><div style="font-weight:700;font-variant-numeric:tabular-nums">' +
+      (v == null ? "—" : v + " " + L.unit) + '</div>' + chip(l, LV_TEXT[l]) + '</div></div>';
+  });
+  $("cardFactors").innerHTML = f;
+}
+
+function rigHTML(s) {
+  var r = s.rig;
+  if (!r) return '<div class="rigbox"><div class="rtxt"><div class="rk">Recommended sail</div><div class="rline">No wind data, so no rig can be recommended.</div></div></div>';
+  var g = s.gust != null ? Math.round(s.gust * KT_PER_MPH) : null, note = "";
+  if (g != null && r.rig.upTo !== Infinity && g > r.rig.upTo) note = "Gusts reach " + g + " kt, above this rig's range. Be ready to change to the " + RIGS[r.index + 1].id + " rig.";
+  if (s.overall === "nogo") note += (note ? " " : "") + "Conditions are NO-GO, so this is for reference only.";
+  return '<div class="rigbox"><div><div class="rk">Recommended sail</div><div class="rbig">' + r.rig.id + ' RIG</div></div><div class="rtxt">' +
+    '<div class="rline">' + esc(r.rig.area) + ', ' + esc(r.rig.mast) + '</div>' +
+    '<div class="note" style="margin-top:2px">Peak sustained wind ' + Math.round(s.windRaw) + ' mph (' + r.kt + ' kt). The ' + r.rig.id + ' rig is for ' + esc(r.rig.range) + '.' + (note ? ' ' + esc(note) : '') + '</div>' +
+    '<div class="note" style="margin-top:2px">Source: <a href="https://lasersailingtips.com/the-rc-laser-sailboat/" target="_blank" rel="noopener">Laser Sailing Tips</a></div></div></div>';
+}
+
+function renderWind() {
+  var c = state.consensus, h = '<h2>Wind Consensus</h2>';
+  var line = function (name, x, off) {
+    return '<h3>' + name + '</h3><div class="line"><span>Direction</span><b>' + (x && x.dir != null ? cardinal(x.dir) + " " + Math.round(x.dir) + "°" : "—") + '</b></div>' +
+      '<div class="line"><span>Wind</span><b>' + (x ? Math.round(x.speed) + " mph" : (off || "—")) + '</b></div>';
+  };
+  h += line("Open-Meteo", c.om, "Unavailable") + line("NWS", c.nws, "Unavailable");
+  if (c.both) {
+    h += line("Consensus", c.both);
+    var cf = c.confidence;
+    h += '<div class="line" style="margin-top:6px"><span>Confidence</span><b class="lv-' + (cf.label === "High" ? "go" : cf.label === "Medium" ? "marginal" : "nogo") + '">' + cf.label + ' (' + cf.score + '/100)</b></div>' +
+      '<p class="note">Sources differ by ' + Math.round(cf.meanDirDiff) + '° and ' + cf.meanSpeedDiff.toFixed(1) + ' mph on average across the four rows. Direction is a vector average. Speed is a plain average.</p>';
+  } else {
+    h += '<h3>Consensus</h3><div class="line"><span>Direction</span><b>—</b></div><div class="line"><span>Wind</span><b>—</b></div>' +
+      '<div style="margin-top:8px">' + chip("disabled", "Consensus Disabled") + '</div><p class="note">' +
+      (!c.nws ? "NWS data is missing, so only Open-Meteo is used." : "Open-Meteo data is missing, so only NWS is used.") + '</p>';
+  }
+  $("cardWind").innerHTML = h;
+}
+
+function renderTide() {
+  var t = state.tide, s = state.sources.noaa;
+  if (!t) {
+    $("cardTide").innerHTML = '<h2>Tide</h2><div class="statusbox" style="--c:var(--unk);--cb:var(--unkbg)"><div style="font-size:22px;font-weight:700">Tide unavailable</div></div><p class="note">' +
+      esc(s.status === "error" ? s.msg : "No tide data loaded.") + ' The rest of the dashboard is unaffected.</p>';
+    return;
+  }
+  var one = function (e) { return e ? fmtN(e.t) + " · " + e.v.toFixed(2) + " ft" : "—"; };
+  $("cardTide").innerHTML = '<h2>Tide · ' + esc(CFG.STATION_NAME) + '</h2><div class="statusbox" style="--c:var(--accent);--cb:var(--unkbg)"><div class="big" style="font-size:36px">' + t.state.toUpperCase() + '</div>' +
+    '<div class="note" style="margin-top:6px">' + (t.state === "Flood" ? "Rising" : "Falling") + ' as of ' + esc(t.refLabel) + '</div></div>' +
+    '<div class="kv"><div><div class="k">Next High Tide</div><div class="v" style="font-size:18px">' + esc(one(t.nextH)) + '</div></div>' +
+    '<div><div class="k">Next Low Tide</div><div class="v" style="font-size:18px">' + esc(one(t.nextL)) + '</div></div>' +
+    '<div><div class="k">Time to Tide Change</div><div class="v" style="font-size:18px">' + fmtDuration(t.minsToChange) + '</div></div>' +
+    '<div><div class="k">Change at</div><div class="v" style="font-size:18px">' + fmtN(t.change.t) + '</div></div></div>';
+}
+
+function renderTable() {
+  var h = "";
+  state.rows.forEach(function (r) {
+    h += '<tr><td>' + esc(r.label) + (r.interpolated ? ' <span class="pill bg-unknown tiny" title="Interpolated between 11:00 AM and 12:00 PM">interp.</span>' : '') + '</td>' +
+      '<td>' + (r.dir == null ? "—" : esc(cardinal(r.dir)) + " " + Math.round(r.dir) + "°") + '</td>' +
+      '<td>' + (r.wind == null ? "—" : Math.round(r.wind) + " mph") + '</td>' +
+      '<td>' + (r.gust == null ? "—" : Math.round(r.gust) + " mph") + '</td>' +
+      '<td>' + (r.tide || "—") + '</td>' +
+      '<td>' + (r.temp == null ? "—" : Math.round(r.temp) + " °F") + '</td>' +
+      '<td>' + (r.pop == null ? "—" : Math.round(r.pop) + "%") + '</td>' +
+      '<td>' + (r.thunder == null ? "—" : Math.round(r.thunder) + "%") + '</td></tr>';
+  });
+  $("tbody").innerHTML = h || '<tr><td colspan="8">No data</td></tr>';
+  $("tableNote").textContent = "Wind and direction are the Open-Meteo and NWS consensus when both load. Gusts are from Open-Meteo, since the NWS hourly feed has none. Temperature is the source average. Precipitation and thunder show the higher source value.";
+}
+
+function renderAll() {
+  renderSources(); renderErrCard();
+  var anyWeather = state.data.om || state.data.nws;
+  if (anyWeather) { renderStatus(); renderWind(); renderTable(); }
+  else {
+    $("cardStatus").innerHTML = '<h2>Race Status</h2><div class="statusbox" style="--c:var(--unk);--cb:var(--unkbg)"><div class="big lv-unknown">NO DATA</div></div><p class="note">No weather source has loaded.</p>';
+    $("cardFactors").innerHTML = '<h2>Triggering Factors</h2><p class="note">Waiting for weather data.</p>';
+    $("cardWind").innerHTML = '<h2>Wind Consensus</h2><div>' + chip("disabled", "Consensus Disabled") + '</div>';
+    $("tbody").innerHTML = '<tr><td colspan="8">No weather data loaded</td></tr>';
+  }
+  renderTide();
+}
+
+/* --------------------------------------------------------------- refresh */
+function setHeader() {
+  $("raceDate").textContent = fmtRaceDate(state.raceYMD);
+  $("locsub").textContent = "Forecast point " + CFG.LAT + "°N, " + Math.abs(CFG.LON) + "°W · Race window 11:30 AM to 3:00 PM · Tides: " + CFG.STATION_NAME + " (" + CFG.STATION + ")";
+}
+function setMaps() {
+  var lat = CFG.MAP_LAT, lon = CFG.MAP_LON;
+  var radar = "https://www.rainviewer.com/map.html?loc=" + lat + "," + lon + ",8&oFa=0&oC=0&oU=0&oCS=1&oF=0&oAP=1&c=1&o=83&lm=1&layer=radar&sm=1&sn=1";
+  var wind = "https://embed.windy.com/embed2.html?lat=" + lat + "&lon=" + lon + "&detailLat=" + lat + "&detailLon=" + lon +
+    "&zoom=9&level=surface&overlay=wind&product=ecmwf&menu=&message=true&marker=true&calendar=now&type=map&location=coordinates&detail=&metricWind=mph&metricTemp=%C2%B0F&radarRange=-1";
+  if (!$("radarFrame").getAttribute("src")) { $("radarFrame").setAttribute("src", radar); $("windFrame").setAttribute("src", wind); }
+  $("radarLink").setAttribute("href", radar.replace("map.html", "map.html")); $("windLink").setAttribute("href", "https://www.windy.com/" + lat + "/" + lon + "?wind," + 9);
+}
+
+function refreshAll() {
+  if (state.busy) return Promise.resolve();
+  state.busy = true; $("btnRefresh").disabled = true; $("btnRefresh").textContent = "Refreshing…";
+  var now = getNow(); state.raceYMD = raceDateFor(now); state.raceN = naive(state.raceYMD.y, state.raceYMD.m, state.raceYMD.d, 0, 0);
+  log("Refresh. Now (ET):", ymd(now, "-"), fmtClock(now.H, now.M), "Race date:", ymd(state.raceYMD, "-"));
+  setHeader(); setMaps();
+  return Promise.all([loadSource("om"), loadSource("nws"), loadSource("noaa")]).then(function () {
+    compute(); state.lastRefresh = now;
+    $("lastRefresh").textContent = MONTHS[now.m - 1] + " " + now.d + ", " + fmtClock(now.H, now.M) + " ET";
+  }).catch(function (e) { warn("Unexpected error during refresh", e); })
+    .then(function () { state.busy = false; $("btnRefresh").disabled = false; $("btnRefresh").textContent = "Refresh"; renderAll(); });
+}
+
+function retrySource(key) {
+  if (!FETCHERS[key] || state.busy) return Promise.resolve();
+  log("Retry", key);
+  state.busy = true; renderSources();
+  return loadSource(key).then(function () { compute(); }).catch(function (e) { warn("Retry failed", e); })
+    .then(function () { state.busy = false; renderAll(); });
+}
+
+/* -------------------------------------------------------------- downloads */
+function download(name, text, type) {
+  try {
+    var url = URL.createObjectURL(new Blob([text], { type: type })), a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  } catch (e) { warn("Download failed", e); alert("Download failed: " + e.message); }
+}
+
+/* ------------------------------------------------------------------ tests */
+function runTests() {
+  var res = [];
+  function t(name, got, want) { var ok = JSON.stringify(got) === JSON.stringify(want); res.push({ name: name, ok: ok, got: got, want: want }); }
+  function near(name, got, want, tol) { var ok = got != null && Math.abs(got - want) <= tol; res.push({ name: name, ok: ok, got: got, want: want }); }
+  // Race date: nearest upcoming Sunday, or today when it is Sunday
+  var d = function (y, m, dd) { return ymd(raceDateFor({ y: y, m: m, d: dd }), "-"); };
+  t("Monday 2026-11-09 -> Sunday 11-15", d(2026, 11, 9), "2026-11-15");
+  t("Friday 2026-11-13 -> Sunday 11-15", d(2026, 11, 13), "2026-11-15");
+  t("Saturday 2026-11-14 -> Sunday 11-15", d(2026, 11, 14), "2026-11-15");
+  t("Sunday 2026-11-15 -> same day", d(2026, 11, 15), "2026-11-15");
+  t("Month rollover Wed 2026-12-30 -> 2027-01-03", d(2026, 12, 30), "2027-01-03");
+  // Limits at the boundaries (values are rounded first)
+  [["wind", 15, "go"], ["wind", 15.4, "go"], ["wind", 15.5, "marginal"], ["wind", 16, "marginal"], ["wind", 25, "marginal"], ["wind", 25.4, "marginal"], ["wind", 25.5, "nogo"], ["wind", 26, "nogo"],
+   ["gust", 19, "go"], ["gust", 20, "marginal"], ["gust", 25, "marginal"], ["gust", 26, "nogo"],
+   ["pop", 50, "go"], ["pop", 51, "marginal"], ["pop", 70, "marginal"], ["pop", 71, "nogo"],
+   ["thunder", 20, "go"], ["thunder", 21, "marginal"], ["thunder", 50, "marginal"], ["thunder", 51, "nogo"],
+   ["wind", null, "unknown"], ["gust", NaN, "unknown"]].forEach(function (c) { t("level " + c[0] + "=" + c[1], level(c[0], c[1]), c[2]); });
+  t("worst of go+marginal", worst(["go", "marginal"]), "marginal");
+  t("worst of marginal+nogo+go", worst(["marginal", "nogo", "go"]), "nogo");
+  t("worst ignores unknown", worst(["unknown", "go"]), "go");
+  t("worst all unknown", worst(["unknown", "unknown"]), "unknown");
+  // Vector averaging
+  near("350 and 10 degrees average to 0", (function () { var x = vectorMeanDir([{ speed: 10, dir: 350 }, { speed: 10, dir: 10 }]); return x > 180 ? x - 360 : x; })(), 0, 0.01);
+  near("90 and 270 at equal speed cancel to null", vectorMeanDir([{ speed: 10, dir: 90 }, { speed: 10, dir: 270 }]) == null ? 0 : -999, 0, 0);
+  near("direction difference 350 vs 10 is 20", dirDiff(350, 10), 20, 0.001);
+  near("direction difference 0 vs 180 is 180", dirDiff(0, 180), 180, 0.001);
+  t("cardinal(0)", cardinal(0), "N"); t("cardinal(348.75)", cardinal(348.75), "N"); t("cardinal(315)", cardinal(315), "NW"); t("cardToDeg('WNW')", cardToDeg("WNW"), 292.5);
+  // 11:30 interpolation
+  var a = { temp: 40, pop: 10, wind: 10, gust: 20, dir: 350, thunder: 0, code: 1 }, b = { temp: 44, pop: 30, wind: 14, gust: 24, dir: 10, thunder: 20, code: 95 };
+  var m = interp(a, b, 0.5);
+  near("interp temp", m.temp, 42, 1e-9); near("interp pop", m.pop, 20, 1e-9); near("interp wind", m.wind, 12, 1e-9); near("interp gust", m.gust, 22, 1e-9);
+  near("interp dir across north (speed weighted, so within 3 degrees)", m.dir > 180 ? m.dir - 360 : m.dir, 0, 3); t("interp thunder takes the max", m.thunder, 20);
+  var map = {}; map[1000 * 60] = a; map[1001 * 60] = b;
+  t("sample returns null when an hour is missing", sample(map, 1000 * 60 + 90), null);
+  var half = sample(map, 1000 * 60 + 30); near("sample interpolates the half hour", half && half.temp, 42, 1e-9);
+  // Thunder estimate
+  t("thunder: none", thunderFromText("Mostly Sunny"), 0); t("thunder: slight chance", thunderFromText("Slight Chance Thunderstorms"), 20);
+  t("thunder: chance", thunderFromText("Chance Showers And Thunderstorms"), 40); t("thunder: likely", thunderFromText("Thunderstorms Likely"), 60); t("thunder: plain", thunderFromText("Thunderstorms"), 80);
+  // Tides
+  var ev = [{ t: 0, type: "L", v: 0 }, { t: 360, type: "H", v: 3 }, { t: 720, type: "L", v: 0 }];
+  t("tide rising after a low", tideAt(ev, 100).state, "Flood"); t("tide falling after a high", tideAt(ev, 500).state, "Ebb"); t("tide outside the data", tideAt(ev, 900), null);
+  [[0, "A"], [6.9 / 1.150779, "A"], [6.49 / KT_PER_MPH, "A"], [6.5 / KT_PER_MPH, "B"], [8.06, "B"], [18.4, "B"], [19.5, "C"], [25.3, "C"], [26.5, "D"], [40, "D"]].forEach(function (c) { var r = rigFor(c[0]); t("rig for " + c[0].toFixed(2) + " mph (" + (r && r.kt) + " kt)", r && r.rig.id, c[1]); });
+  t("rig for no data", rigFor(null), null);
+  t("duration format", fmtDuration(125), "2h 05m"); t("duration format short", fmtDuration(9), "9m");
+  var pass = res.filter(function (r) { return r.ok; }).length;
+  console.table(res.map(function (r) { return { test: r.name, result: r.ok ? "PASS" : "FAIL", got: JSON.stringify(r.got), want: JSON.stringify(r.want) }; }));
+  log("Self-tests:", pass + "/" + res.length + " passed");
+  $("testOut").innerHTML = '<div>' + pass + ' of ' + res.length + ' passed</div>' + res.filter(function (r) { return !r.ok; }).map(function (r) { return '<div class="fail">FAIL ' + esc(r.name) + ': got ' + esc(JSON.stringify(r.got)) + ', want ' + esc(JSON.stringify(r.want)) + '</div>'; }).join("");
+  return { passed: pass, total: res.length, results: res };
+}
+
+/* Testing hooks: open the console and call RCDash.* */
+window.RCDash = {
+  state: state, refresh: refreshAll, retry: retrySource, runTests: runTests,
+  simulateFailure: function (key, on) { state.fail[key] = on !== false; log("Simulated failure for", key, "=", state.fail[key]); },
+  clearFailures: function () { state.fail = { om: false, nws: false, noaa: false }; log("Failures cleared"); },
+  /* Recovery test: fail a source, refresh, clear the failure, retry. */
+  recoveryTest: function (key) {
+    key = key || "om"; var self = window.RCDash;
+    self.simulateFailure(key, true);
+    return refreshAll().then(function () { log("Recovery test: after failure", key, "=", state.sources[key].status); self.simulateFailure(key, false); return retrySource(key); })
+      .then(function () { log("Recovery test: after retry", key, "=", state.sources[key].status); return state.sources[key].status; });
+  },
+  setClock: function (iso) { state.clockOverride = iso || null; log("Clock override:", iso || "off"); return refreshAll(); }
+};
+
+/* ------------------------------------------------------------------- init */
+$("btnRefresh").addEventListener("click", function () { refreshAll(); });
+$("btnDlPage").addEventListener("click", function () { download("index.html", PAGE_SOURCE, "text/html"); });
+$("btnDlData").addEventListener("click", function () {
+  download("rc-laser-sunday-" + (state.raceYMD ? ymd(state.raceYMD, "-") : "data") + ".json", JSON.stringify({ raceDate: state.raceYMD && ymd(state.raceYMD, "-"), lastRefresh: state.lastRefresh, sources: state.sources, rows: state.rows, consensus: state.consensus, summary: state.summary, tide: state.tide }, null, 2), "application/json");
+});
+$("btnTests").addEventListener("click", runTests);
+document.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest("[data-retry]"); if (b) retrySource(b.getAttribute("data-retry")); });
+$("method").textContent = "Rig sizes and wind ranges are from lasersailingtips.com (A, B, C and D rigs, in knots). Sources: Open-Meteo hourly forecast, National Weather Service hourly forecast, NOAA CO-OPS tide predictions. Thunder chance is estimated from Open-Meteo weather codes and NWS forecast wording, because neither hourly feed gives a thunder percentage. Status uses the worst of four factors, each judged on whole-number values.";
+window.addEventListener("error", function (e) { warn("Uncaught error:", e.message); });
+window.addEventListener("unhandledrejection", function (e) { warn("Unhandled rejection:", e.reason); });
+setInterval(function () { if (!document.hidden) refreshAll(); }, CFG.AUTO_REFRESH_MS);
+refreshAll();
+</script>
+</body>
+</html>
